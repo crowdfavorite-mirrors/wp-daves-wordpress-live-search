@@ -2,11 +2,21 @@ jQuery(document).ready(function($){
 
 	function dwls_admin_color_change() {
 		setTimeout(function() {
+
+			$('#daves-wordpress-live-search_custom_width').val(
+				Math.abs(parseInt($('#daves-wordpress-live-search_custom_width').val(), 10))
+			);
+
 			var input = $(this),
 			preview = $('.dwls_search_results');
+
 			$('#dwls_custom_styles').remove();
+
 			var styles =
-				['.dwls_search_results li {',
+				['.dwls_search_results {',
+				'  width: ' + $('#daves-wordpress-live-search_custom_width').val() + 'px;',
+				'}',
+				'.dwls_search_results li {',
 				'  color: ' + $('#daves-wordpress-live-search_custom_fg').val() + ';',
 				'  background-color: ' + $('#daves-wordpress-live-search_custom_bg').val() + ';',
 				'}',
@@ -43,7 +53,7 @@ jQuery(document).ready(function($){
 		}, 0);
 	}
 
-	$('.dwls_color_picker, .dwls_design_toggle').change(dwls_admin_color_change);
+	$('.dwls_color_picker, .dwls_design_toggle, #daves-wordpress-live-search_custom_width').change(dwls_admin_color_change);
     $('.dwls_color_picker').wpColorPicker({change: dwls_admin_color_change});
     dwls_admin_color_change();
 

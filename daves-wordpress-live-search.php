@@ -3,7 +3,7 @@
 /*
 Plugin Name: Dave's WordPress Live Search
 Description: Adds "live search" functionality to your WordPress site. Uses the built-in search and jQuery.
-Version: 3.2
+Version: 3.3
 Author: Dave Ross
 Author URI: http://davidmichaelross.com/
 Plugin URI: http://wordpress.org/extend/plugins/daves-wordpress-live-search/
@@ -21,27 +21,35 @@ Plugin URI: http://wordpress.org/extend/plugins/daves-wordpress-live-search/
  * Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE
- * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR 
- * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR 
+ * WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+ * COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  **/
- 
+
 if(5.0 > floatval(phpversion())) {
 	// Call the special error handler that displays an error
 	add_action('admin_notices', 'daves_wp_live_search_phpver_admin_notice');
 }
-else {
-	add_action('admin_notices', array('DavesWordPressLiveSearch', 'admin_notices'));
 
-	// Register hooks
-	add_action('init', array('DavesWordPressLiveSearch', 'advanced_search_init'));
-	add_action('admin_menu', array('DavesWordPressLiveSearch', 'admin_menu'));
-	add_action('wp_head', array('DavesWordPressLiveSearch', 'head'));
-	add_action('admin_head', array('DavesWordPressLiveSearch', 'head'));
-    register_activation_hook(__FILE__, array('DavesWordPressLiveSearch', 'activate'));
-    add_action('admin_enqueue_scripts', array('DavesWordPressLiveSearch', 'admin_enqueue_scripts'));
-	include_once("DavesWordPressLiveSearch.php");
-	include_once("DavesWordPressLiveSearchResults.php");
+add_action('init', 'daves_wp_live_search_init');
+include_once "DWLSTransients.php";
+
+function daves_wp_live_search_init() {
+	if(defined('DOING_AJAX')) {
+		include_once "DavesWordPressLiveSearchResults.php";
+	}
+	else {
+		include_once "DavesWordPressLiveSearch.php";
+		add_action('admin_notices', array('DavesWordPressLiveSearch', 'admin_notices'));
+
+		// Register hooks
+		add_action('admin_menu', array('DavesWordPressLiveSearch', 'admin_menu'));
+		add_action('wp_head', array('DavesWordPressLiveSearch', 'head'));
+		add_action('admin_head', array('DavesWordPressLiveSearch', 'head'));
+		register_activation_hook(__FILE__, array('DavesWordPressLiveSearch', 'activate'));
+		add_action('admin_enqueue_scripts', array('DavesWordPressLiveSearch', 'admin_enqueue_scripts'));
+		DavesWordPressLiveSearch::advanced_search_init();
+	}
 }
 
 function daves_wp_live_search_phpver_admin_notice() {
@@ -51,29 +59,31 @@ function daves_wp_live_search_phpver_admin_notice() {
 
 // Provide a json_encode implementation if none exists (PHP < 5.2.0)
 if(!function_exists('json_encode')) {
-    require(ABSPATH."/wp-includes/compat.php");
+    require ABSPATH."/wp-includes/compat.php" ;
 }
 
 // Relevanssi "bridge" plugin
 class DWLS_Relevanssi_Bridge {
 	static function init() {
 		if(function_exists('relevanssi_do_query')) {
-			add_filter('dwls_alter_results', array('DWLS_Relevanssi_Bridge', 'dwls_alter_results'), 10, 2);
+			add_filter('dwls_alter_results', array('DWLS_Relevanssi_Bridge', 'dwls_alter_results'), 10, 3);
 		}
 	}
-	
-	static function dwls_alter_results($wpQueryResults, $maxResults) {
+
+	static function dwls_alter_results($wpQueryResults, $maxResults, $results) {
+		global $wp_query;
+
 		// WP_Query::query() set everything up
 		// Now have Relevanssi do the query over again
 		// but do it in its own way
 		// Thanks Mikko!
-		relevanssi_do_query($wpQueryResults);
-		$wpQueryResults->relevanssi = true;
-				
+		relevanssi_do_query($wp_query);
+		$results->relevanssi = true;
+
 		// Mikko says Relevanssi 2.5 doesn't handle limits
 		// when it queries, so I need to handle them on my own.
-		$wpQueryResults->posts = array_slice($wpQueryResults->posts, 0, $maxResults);
-		
+		$wpQueryResults = array_slice($wp_query->posts, 0, $maxResults);
+
 		return $wpQueryResults;
 	}
 }

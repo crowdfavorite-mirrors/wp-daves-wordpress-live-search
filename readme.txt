@@ -1,10 +1,10 @@
-=== Plugin Name ===
+=== Dave's WordPress Live Search ===
 Contributors: csixty4
 Donate link: http://catguardians.org
 Tags: search, AJAX, live search
-Requires at least: 2.9
-Tested up to: 3.5
-Stable tag: 3.2
+Requires at least: 3.5
+Tested up to: 3.6
+Stable tag: 3.3
 License: MIT
 License URI: http://www.opensource.org/licenses/mit-license.php
 
@@ -30,6 +30,10 @@ This plugin also integrates with the Relevanssi plugin for improved search resul
 Since v2.3, Dave's WordPress Live Search supports multiple languages, but I need native speakers and translators.
 
 Interested? Visit [this project's CrowdIn page](http://crowdin.net/project/daves-wordpress-live-search/invite) to get started!
+
+BIG THANKS to all these CrowdIn users who submitted translations already: abibouba, andreio, baky1er, bps, bugmeniet, cinetrailer, Jess-Nielsen, jganer, kabboch, Kriszta, levati, malaa83, rebelidea, Remco_Landegge, sella, thambaru, tunglam, and vderLinden AS WELL AS everyone who submitted a translation before the switch to CrowdIn: Klemen Tušar, Jesper Hessius, Daniele of W3B.it, Andreu Llos, Utku Sönmez, Maxime Chevasson, Paul Göttgens, Łukasz Wilkowski, Sociedade Euromilhoes, and Norbert Grund.
+
+You guys rock.
 
 == Installation ==
 
@@ -72,8 +76,18 @@ Features I want to implement in future releases:
 
 == Changelog ==
 
+= 3.3 =
+* 2013-06-05 Dave Ross <dave@csixty4.com>
+* Added search results width to the customizer
+* Faster startup on AJAX requests (fewer includes & hooks registered)
+* If SCRIPT_DEBUG is set, use non-minified scripts
+* Now uses a proper loop to get search results. Hopefully improves compatibility with other search plugins
+* The parameters to the dwls_alter_results hook have changed: array of results (instead of a query object), deprecated (always -1), DavesWordPressLiveSearchResults instance.
+* Now uses WordPress's native submit_button() function to generate submit buttons in the admin interface for more consistent styling with the rest of admin
+* Requires WordPress 3.5 or higher
+
 = 3.2 =
-* 2012-01-22 Dave Ross <dave@csixty4.com>
+* 2013-01-22 Dave Ross <dave@csixty4.com>
 * Fixed a Javascript error when resizing a window
 * Removed the "debug" tab - wasn't very useful
 * Force a high z-index on the spinner
@@ -317,6 +331,10 @@ Features I want to implement in future releases:
 * Initial release
 
 == Upgrade Notice ==
+
+= 3.3 =
+
+Dave's WordPress Live Search v3.3 requires WordPress 3.5 or higher. Older versions of the plugin are still available from http://wordpress.org/plugins/daves-wordpress-live-search/developers/ if needed.
 
 = 3.1.1 =
 
