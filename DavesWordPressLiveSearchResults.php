@@ -122,7 +122,7 @@ class DavesWordPressLiveSearchResults {
 		if ( empty( $result->post_excerpt ) ) {
 			$content = apply_filters( "localization", $result->post_content );
 			$excerpt = explode( " ", strrev( substr( strip_tags( $content ), 0, $excerptLength ) ), 2 );
-			$excerpt = strrev( $excerpt[1] );
+			$excerpt = strrev( isset($excerpt[1]) ? $excerpt[1] : '' );
 			$excerpt .= " [...]";
 		} else {
 			$excerpt = apply_filters( "localization", $result->post_excerpt );
@@ -150,6 +150,9 @@ class DavesWordPressLiveSearchResults {
 
 	public function ajaxSearch() {
 		global $wp_query;
+
+		// This needs to be registered here so it's only invoked when processing a DWLS AJAX request
+		add_action( 'pre_get_posts', array( "DavesWordPressLiveSearchResults", "pre_get_posts" ) );
 
 		$cacheLifetime = intval( get_option( 'daves-wordpress-live-search_cache_lifetime' ) );
 		if ( !is_user_logged_in() && 0 < $cacheLifetime ) {
@@ -223,4 +226,3 @@ class DavesWordPressLiveSearchResults {
 // Set up the AJAX hooks
 add_action( "wp_ajax_dwls_search", array( "DavesWordPressLiveSearchResults", "ajaxSearch" ) );
 add_action( "wp_ajax_nopriv_dwls_search", array( "DavesWordPressLiveSearchResults", "ajaxSearch" ) );
-add_action( 'pre_get_posts', array( "DavesWordPressLiveSearchResults", "pre_get_posts" ) );
