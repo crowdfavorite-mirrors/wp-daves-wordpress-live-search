@@ -1,5 +1,7 @@
 <?php
 
+if ( !defined( 'ABSPATH' ) ) die( 'Cannot access files directly.' );
+
 /**
  * Copyright (c) 2009 Dave Ross <dave@csixty4.com>
  *
@@ -17,6 +19,7 @@
  * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * */
 class DavesWordPressLiveSearch {
+
 	///////////////////
 	// Initialization
 	///////////////////
@@ -27,9 +30,11 @@ class DavesWordPressLiveSearch {
 	 * @return void
 	 */
 	public static function advanced_search_init() {
+
 		load_plugin_textdomain( 'dwls', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
 		if ( self::isSearchablePage() ) {
-			if ( defined( 'SCRIPT_DEBUG' ) ) {
+			wp_enqueue_script( 'underscore' );
+			if ( defined( 'SCRIPT_DEBUG' ) && SCRIPT_DEBUG ) {
 				wp_enqueue_script( 'daves-wordpress-live-search', plugin_dir_url( __FILE__ ) . 'js/daves-wordpress-live-search.js', array( 'jquery' ) );
 				wp_enqueue_script( 'excanvas', plugin_dir_url( __FILE__ ) . 'js/excanvas.js', 'jquery' );
 				wp_enqueue_script( 'spinners', plugin_dir_url( __FILE__ ) . 'js/spinners.js', 'explorercanvas' );
@@ -41,6 +46,7 @@ class DavesWordPressLiveSearch {
 			}
 			self::inlineSettings();
 		}
+
 	}
 
 	public static function head() {
@@ -56,7 +62,6 @@ class DavesWordPressLiveSearch {
 			}
 		}
 		elseif ( self::isSearchablePage() ) {
-
 			switch ( $cssOption ) {
 				case 'theme':
 					$style = $themeDir . '/daves-wordpress-live-search.css';
@@ -79,7 +84,6 @@ class DavesWordPressLiveSearch {
 			}
 
 			if ( $cssOption === 'custom' && !is_admin() ) {
-
 				$customOptions = get_option( 'daves-wordpress-live-search_custom_options' );
 
 				// Default width if none was provided
@@ -125,18 +129,36 @@ STYLE;
 				echo '<style type="text/css">' . $styleTag . '</style>';
 			}
 		}
+
+	}
+
+	/**
+	 * Working around the fact either the $_POST parameters are unreliable (may be true or "true")
+	 * or I just can't keep them straight. Probably the latter, but best to be safe.
+	 * 
+	 * @param mixed  $value value to be tested for truthiness
+	 * @return boolean truthiness
+	 */
+	private static function isTruthy( $value ) {
+
+		if(true === $value) { return true; } // Check for boolean true
+		if(is_numeric( $value ) && 0 !== $value) { return true; } // Check for nonzero
+		if('true' === $value) { return true; } // Check for the word 'true'
+
+		return false;
+
 	}
 
 	private static function inlineSettings() {
-		global $wps_subdomains;
 
 		$resultsDirection = stripslashes( get_option( 'daves-wordpress-live-search_results_direction' ) );
-		$showThumbs = intval( ( "true" == get_option( 'daves-wordpress-live-search_thumbs' ) ) );
+		$showThumbs = (true === self::isTruthy( get_option( 'daves-wordpress-live-search_thumbs' ) ) );
 		$showExcerpt = intval( ( "true" == get_option( 'daves-wordpress-live-search_excerpt' ) ) );
-		$showMoreResultsLink = intval( ( "true" == get_option( 'daves-wordpress-live-search_more_results', true ) ) );
+		$showMoreResultsLink = (true === self::isTruthy( get_option( 'daves-wordpress-live-search_more_results', true ) ) );
 		$minCharsToSearch = intval( get_option( 'daves-wordpress-live-search_minchars' ) );
 		$xOffset = intval( get_option( 'daves-wordpress-live-search_xoffset' ) );
 		$yOffset = intval( get_option( 'daves-wordpress-live-search_yoffset' ) );
+		$resultTemplate = apply_filters('dwls_alter_result_template', file_get_contents(dirname(__FILE__) . "/js/dwls-results.tpl"));
 
 		// Translations
 		$moreResultsText = __( 'View more results', 'dwls' );
@@ -148,9 +170,9 @@ STYLE;
 		// @see http://www.garyc40.com/2010/03/5-tips-for-using-ajax-in-wordpress/#js-global
 		wp_localize_script( 'daves-wordpress-live-search', 'DavesWordPressLiveSearchConfig', array(
 				'resultsDirection' => $resultsDirection,
-				'showThumbs' => ( $showThumbs == 1 ) ? 'true' : 'false',
+				'showThumbs' => ( $showThumbs ) ? 'true' : 'false',
 				'showExcerpt' => ( $showExcerpt == 1 ) ? 'true' : 'false',
-				'showMoreResultsLink' => ( $showMoreResultsLink == 1 ) ? 'true' : 'false',
+				'showMoreResultsLink' => ( $showMoreResultsLink ) ? 'true' : 'false',
 				'minCharsToSearch' => $minCharsToSearch,
 				'xOffset' => $xOffset,
 				'yOffset' => $yOffset,
@@ -158,7 +180,9 @@ STYLE;
 				'ajaxURL' => admin_url( 'admin-ajax.php', is_ssl() ),
 				'viewMoreText' => $moreResultsText,
 				'outdatedJQuery' => $outdatedJQueryText,
+				'resultTemplate' => $resultTemplate,
 			) );
+
 	}
 
 	///////////////
@@ -171,16 +195,20 @@ STYLE;
 	 * @return void
 	 */
 	public static function admin_menu() {
+
 		add_options_page( "Dave's WordPress Live Search Options", __( 'Live Search', 'dwls' ), 'manage_options', __FILE__, array( 'DavesWordPressLiveSearch', 'plugin_options' ) );
+
 	}
 
 	public static function admin_enqueue_scripts() {
+
 		global $wp_version;
 		// Color picker was introduced in WP 3.5
 		if ( floatval( $wp_version ) >= 3.5 ) {
 			wp_enqueue_style( 'wp-color-picker' );
 			wp_enqueue_script( 'my-script-handle', plugins_url( 'admin/color_picker.js', __FILE__ ), array( 'wp-color-picker' ), false, true );
 		}
+
 	}
 
 	/**
@@ -189,7 +217,9 @@ STYLE;
 	 * @return void
 	 */
 	public static function plugin_options() {
+
 		$tab = isset( $_REQUEST['tab'] ) ? $_REQUEST['tab'] : '';
+
 		switch ( $tab ) {
 			case 'advanced':
 				return self::plugin_options_advanced();
@@ -199,13 +229,14 @@ STYLE;
 			default:
 				return self::plugin_options_settings();
 		}
+
 	}
 
 	private static function plugin_options_settings() {
+
 		$thisPluginsDirectory = dirname( __FILE__ );
 
 		if ( array_key_exists( 'daves-wordpress-live-search_submit', $_POST ) && current_user_can( 'manage_options' ) ) {
-
 			check_admin_referer( 'daves-wordpress-live-search-config' );
 
 			// Read their posted value
@@ -222,32 +253,31 @@ STYLE;
 
 			$updateMessage = __( 'Options saved.', 'dwls' );
 			echo "<div class=\"updated fade\"><p><strong>$updateMessage</strong></p></div>";
-
 		}
 		else {
-
 			$maxResults = intval( get_option( 'daves-wordpress-live-search_max_results' ) );
 			$resultsDirection = stripslashes( get_option( 'daves-wordpress-live-search_results_direction' ) );
 			$minCharsToSearch = intval( get_option( 'daves-wordpress-live-search_minchars' ) );
 			$searchSource = intval( get_option( 'daves-wordpress-live-search_source' ) );
-
 		}
 
-		include "$thisPluginsDirectory/admin/daves-wordpress-live-search-admin.tpl";
+		include "$thisPluginsDirectory/admin/daves-wordpress-live-search-admin.tpl.php";
+
 	}
 
 	private static function plugin_options_design() {
+
 		$thisPluginsDirectory = dirname( __FILE__ );
 
 		if ( array_key_exists( 'daves-wordpress-live-search_submit', $_POST ) && current_user_can( 'manage_options' ) ) {
 			check_admin_referer( 'daves-wordpress-live-search-config' );
 
 			// Read their posted value
-			$displayPostMeta = ( "true" == $_POST['daves-wordpress-live-search_display_post_meta'] );
-			$showThumbs = $_POST['daves-wordpress-live-search_thumbs'];
-			$showExcerpt = $_POST['daves-wordpress-live-search_excerpt'];
-			$excerptLength = $_POST['daves-wordpress-live-search_excerpt_length'];
-			$showMoreResultsLink = $_POST['daves-wordpress-live-search_more_results'];
+			$displayPostMeta     = ( 'true' === $_POST['daves-wordpress-live-search_display_post_meta'] );
+			$showThumbs          = ( 'true' === $_POST['daves-wordpress-live-search_thumbs'] );
+			$showExcerpt         = ( 'true' === $_POST['daves-wordpress-live-search_excerpt'] );
+			$excerptLength       = $_POST['daves-wordpress-live-search_excerpt_length'];
+			$showMoreResultsLink = ( 'true' === $_POST['daves-wordpress-live-search_more_results'] );
 
 			$cssOption = $_POST['daves-wordpress-live-search_css'];
 			$customOptions = $_POST['daves-wordpress-live-search_custom'];
@@ -274,16 +304,19 @@ STYLE;
 			$showThumbs = (bool) get_option( 'daves-wordpress-live-search_thumbs' );
 			$showExcerpt = (bool) get_option( 'daves-wordpress-live-search_excerpt' );
 			$excerptLength = intval( get_option( 'daves-wordpress-live-search_excerpt_length' ) );
-			$showMoreResultsLink = intval( "true" == get_option( 'daves-wordpress-live-search_more_results' ) );
+			$showMoreResultsLink = (bool) get_option( 'daves-wordpress-live-search_more_results' );
 			$cssOption = get_option( 'daves-wordpress-live-search_css_option' );
 			$customOptions = get_option( 'daves-wordpress-live-search_custom_options' );
 		}
 
-		include "$thisPluginsDirectory/admin/daves-wordpress-live-search-admin-appearance.tpl";
+		include "$thisPluginsDirectory/admin/daves-wordpress-live-search-admin-appearance.tpl.php";
+
 	}
 
 	private static function plugin_options_advanced() {
+
 		$thisPluginsDirectory = dirname( __FILE__ );
+
 		if ( array_key_exists( 'daves-wordpress-live-search_submit', $_POST ) && current_user_can( 'manage_options' ) ) {
 			check_admin_referer( 'daves-wordpress-live-search-config' );
 
@@ -291,23 +324,11 @@ STYLE;
 			$xOffset = intval( $_POST['daves-wordpress-live-search_xoffset'] );
 			$yOffset = intval( $_POST['daves-wordpress-live-search_yoffset'] );
 			$exceptions = $_POST['daves-wordpress-live-search_exceptions'];
-			$cacheLifetime = $_POST['daves-wordpress-live-search_cache_lifetime'];
-			if ( "" == trim( $cacheLifetime ) ) {
-				$cacheLifetime = 3600;
-			}
 			$applyContentFilter = ( isset( $_POST['daves-wordpress-live-search_apply_content_filter'] ) && "true" == $_POST['daves-wordpress-live-search_apply_content_filter'] );
-
-			if ( array_key_exists( 'daves-wordpress-live-search_submit', $_POST ) && "Clear Cache" == $_POST['daves-wordpress-live-search_submit'] && current_user_can( 'manage_options' ) ) {
-				// Clear the cache
-				DWLSTransients::clear();
-				$clearedMessage = __( 'Cache cleared.', 'mt_trans_domain' );
-				echo "<div class=\"updated fade\"><p><strong>$clearedMessage</strong></p></div>";
-			}
 
 			update_option( 'daves-wordpress-live-search_exceptions', $exceptions );
 			update_option( 'daves-wordpress-live-search_xoffset', intval( $xOffset ) );
 			update_option( 'daves-wordpress-live-search_yoffset', intval( $yOffset ) );
-			update_option( 'daves-wordpress-live-search_cache_lifetime', intval( $cacheLifetime ) );
 			update_option( 'daves-wordpress-live-search_apply_content_filter', $applyContentFilter );
 
 			// Translate the "Options saved" message...just in case.
@@ -320,22 +341,18 @@ STYLE;
 			$exceptions = get_option( 'daves-wordpress-live-search_exceptions' );
 			$xOffset = intval( get_option( 'daves-wordpress-live-search_xoffset' ) );
 			$yOffset = intval( get_option( 'daves-wordpress-live-search_yoffset' ) );
-			$cacheLifetime = get_option( 'daves-wordpress-live-search_cache_lifetime' );
-			if ( "" == trim( $cacheLifetime ) ) {
-				$cacheLifetime = 3600;
-			} else {
-				$cacheLifetime = intval( $cacheLifetime );
-			}
-
 			$applyContentFilter = (bool) get_option( 'daves-wordpress-live-search_apply_content_filter' );
 
 		}
 
-		include "$thisPluginsDirectory/admin/daves-wordpress-live-search-admin-advanced.tpl";
+		include "$thisPluginsDirectory/admin/daves-wordpress-live-search-admin-advanced.tpl.php";
+
 	}
 
 	public static function admin_notices() {
+
 		$cssOption = get_option( 'daves-wordpress-live-search_css_option' );
+
 		if ( 'theme' == $cssOption ) {
 			$themeDir = get_theme_root() . '/' . get_stylesheet();
 
@@ -345,17 +362,19 @@ STYLE;
 				echo "<div class=\"updated fade\"><p><strong>$alertMessage</strong></p></div>";
 			}
 		}
+
 	}
 
 	private static function isSearchablePage() {
-		if ( is_admin() )
+
+		if ( is_admin() ) {
 			return false;
+		}
 
 		$searchable = true;
 		$exceptions = explode( "\n", get_option( 'daves-wordpress-live-search_exceptions' ) );
 
 		foreach ( $exceptions as $exception ) {
-
 			$regexp = trim( $exception );
 
 			// Blank paths were slipping through. Ignore them.
@@ -393,6 +412,7 @@ STYLE;
 
 		// Fall-through, search everything by default
 		return true;
+
 	}
 
 	/**
@@ -420,21 +440,7 @@ STYLE;
 				'footfg' => '#fff',
 				'width' => '250',
 			) );
+
 	}
 
-}
-
-// Set up hooks to clear the cache when a post is
-// created, deleted, or edited
-$dwls_update_hooks = array(
-	'delete_post',
-	'edit_post',
-	'save_post',
-	'trash_post',
-	'untrash_post',
-	'update_postmeta',
-	'xmlrpc_publish_post',
-);
-foreach ( $dwls_update_hooks as $dwls_update_hook ) {
-	add_action( $dwls_update_hook, array( "DWLSTransients", "clear" ) );
 }

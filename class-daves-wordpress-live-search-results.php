@@ -1,8 +1,7 @@
 <?php
 
-/**
- * Value object class
- */
+if ( !defined( 'ABSPATH' ) ) die( "Cannot access files directly." );
+
 class DavesWordPressLiveSearchResults {
 
 	// Search sources
@@ -73,16 +72,20 @@ class DavesWordPressLiveSearchResults {
 			}
 
 			if ( $hasThumbnailSet ) {
+
 				$post->attachment_thumbnail = $postImageData[0];
+
 			} else {
-				// If no post thumbnail, grab the first image from the post
-				$applyContentFilter = get_option( 'daves-wordpress-live-search_apply_content_filter', false );
-				$content = $post->post_content;
-				if ( $applyContentFilter ) {
-					$content = apply_filters( 'the_content', $content );
+
+				$firstImageMeta = get_post_meta( $post->ID, '_dwls_first_image', true );
+				if ( $firstImageMeta ) {
+					$post->attachment_thumbnail = $firstImageMeta;
 				}
-				$content = str_replace( ']]>', ']]&gt;', $content );
-				$post->attachment_thumbnail = $this->firstImg( $content );
+				else {
+					// If no post thumbnail, grab the first image from the post_date
+					$post->attachment_thumbnail = DWLS_Util::updateFirstImagePostmeta( $post->ID, $post );
+				}
+
 			}
 
 			$post->attachment_thumbnail = apply_filters( 'dwls_attachment_thumbnail', $post->attachment_thumbnail );
@@ -101,6 +104,9 @@ class DavesWordPressLiveSearchResults {
 			$post->post_title = apply_filters( 'dwls_post_title', $post->post_title );
 
 			$post->show_more = true;
+
+			// Let plugins & themes define their own template variables
+			$post = apply_filters( 'dwls_post_custom', $post );
 
 			$this->results[] = $post;
 
@@ -122,7 +128,7 @@ class DavesWordPressLiveSearchResults {
 		if ( empty( $result->post_excerpt ) ) {
 			$content = apply_filters( "localization", $result->post_content );
 			$excerpt = explode( " ", strrev( substr( strip_tags( $content ), 0, $excerptLength ) ), 2 );
-			$excerpt = strrev( isset($excerpt[1]) ? $excerpt[1] : '' );
+			$excerpt = strrev( isset( $excerpt[1] ) ? $excerpt[1] : '' );
 			$excerpt .= " [...]";
 		} else {
 			$excerpt = apply_filters( "localization", $result->post_excerpt );
@@ -134,61 +140,28 @@ class DavesWordPressLiveSearchResults {
 		return $excerpt;
 	}
 
-
-	public function firstImg( $post_content ) {
-		$matches = array();
-		$output = preg_match_all( '/<img.+src=[\'"]([^\'"]+)[\'"].*>/i', $post_content, $matches );
-		if ( isset( $matches[1][0] ) ) {
-			$first_img = $matches[1][0];
-		}
-
-		if ( empty( $first_img ) ) {
-			return '';
-		}
-		return $first_img;
-	}
-
-	public function ajaxSearch() {
+	public static function ajaxSearch() {
 		global $wp_query;
 
 		// This needs to be registered here so it's only invoked when processing a DWLS AJAX request
 		add_action( 'pre_get_posts', array( "DavesWordPressLiveSearchResults", "pre_get_posts" ) );
 
-		$cacheLifetime = intval( get_option( 'daves-wordpress-live-search_cache_lifetime' ) );
-		if ( !is_user_logged_in() && 0 < $cacheLifetime ) {
-			$doCache = TRUE;
-		} else {
-			$doCache = FALSE;
-		}
+		$displayPostMeta = (bool) get_option( 'daves-wordpress-live-search_display_post_meta' );
+		$results = new DavesWordPressLiveSearchResults( $_GET['s'], $displayPostMeta );
 
-		if ( $doCache ) {
-			$cachedResults = DWLSTransients::get( $_REQUEST['s'] );
-		}
-
-		if ( ( !$doCache ) || ( FALSE === $cachedResults ) ) {
-
-			$displayPostMeta = (bool) get_option( 'daves-wordpress-live-search_display_post_meta' );
-
-			$results = new DavesWordPressLiveSearchResults( $_GET['s'], $displayPostMeta );
-
-			if ( $doCache ) {
-				DWLSTransients::set( $_REQUEST['s'], $results, $cacheLifetime );
-			}
-
-		} else {
-
-			// Found it in the cache. Return the results.
-			$results = $cachedResults;
-
-		}
-
-		wp_send_json($results);
+		wp_send_json( $results );
 	}
 
 	public static function pre_get_posts( $query ) {
 
 		// These fields don't seem to be getting set right during an AJAX call
 		$query->parse_query( http_build_query( $_GET ) );
+
+		// Force post status to 'publish' because admin-ajax.php runs in an admin context
+		$query->set( 'post_status', 'publish' );
+
+		// Ignore sticky posts
+		$query->set( 'ignore_sticky_posts', true );
 
 		if ( array_key_exists( 'search_source', $_REQUEST ) ) {
 			$searchSource = $_GET['search_source'];
@@ -220,7 +193,19 @@ class DavesWordPressLiveSearchResults {
 				$query->set( 'post_type', 'wpsc-product' );
 			}
 		}
+
+		// Limit the WP_Query response to just the fields
+		$query_fields = array( 'ID', 'post_author', 'post_content', 'post_excerpt', 'post_date', 'post_title' );
+		$query_fields = apply_filters( 'dwls_query_fields', $query_fields );
+		$query->set( 'fields', $query_fields );
+
+		// Tell WordPress not to bother updating post caches
+		$query->set( 'cache_results', false );
+
+		// Tell WordPress not to get SQL_CALC_FOUND_ROWS
+		$query->set( 'no_found_rows', true );
 	}
+
 }
 
 // Set up the AJAX hooks

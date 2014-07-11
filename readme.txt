@@ -2,11 +2,11 @@
 Contributors: csixty4
 Donate link: http://catguardians.org
 Tags: search, AJAX, live search
-Requires at least: 3.5
-Tested up to: 3.6
-Stable tag: 3.3.1
+Requires at least: 3.6
+Tested up to: 3.9.1
+Stable tag: 4.2
 License: MIT
-License URI: http://www.opensource.org/licenses/mit-license.php
+License URI: http://daveross.mit-license.org
 
 Adds "live search" functionality to your WordPress site. Uses the built-in search and jQuery.
 
@@ -31,9 +31,9 @@ Since v2.3, Dave's WordPress Live Search supports multiple languages, but I need
 
 Interested? Visit [this project's CrowdIn page](http://crowdin.net/project/daves-wordpress-live-search/invite) to get started!
 
-BIG THANKS to all these CrowdIn users who submitted translations already: abibouba, andreio, baky1er, bps, bugmeniet, cinetrailer, Jess-Nielsen, jganer, kabboch, Kriszta, levati, malaa83, rebelidea, Remco_Landegge, sella, thambaru, tunglam, and vderLinden AS WELL AS everyone who submitted a translation before the switch to CrowdIn: Klemen Tušar, Jesper Hessius, Daniele of W3B.it, Andreu Llos, Utku Sönmez, Maxime Chevasson, Paul Göttgens, Łukasz Wilkowski, Sociedade Euromilhoes, and Norbert Grund.
+BIG THANKS to all these CrowdIn users who submitted translations already: abibouba, andreio, baky1er, bps, bugmeniet, cinetrailer, Jess-Nielsen, jganer, kabboch, Kriszta, levati, malaa83, rebelidea, Remco_Landegge, sella, thambaru, tunglam vderLinden, and zlyton AS WELL AS everyone who submitted a translation before the switch to CrowdIn: Klemen Tušar, Jesper Hessius, Daniele of W3B.it, Andreu Llos, Utku Sönmez, Maxime Chevasson, Paul Göttgens, Łukasz Wilkowski, Sociedade Euromilhoes, and Norbert Grund.
 
-You guys rock.
+You rock.
 
 == Installation ==
 
@@ -67,6 +67,9 @@ When you're ready, save your changes, and Dave's WordPress Live Search is ready 
 1. dwls_the_excerpt
 1. dwls_post_date
 1. dwls_author_name
+1. dwls_alter_result_template
+1. dwls_post_custom
+1. dwls_query_fields
 
 == Wish List ==
 
@@ -75,6 +78,28 @@ Features I want to implement in future releases:
 1. "No results found" message (optional)
 
 == Changelog ==
+
+= 4.2 =
+* 2014-05-10 Dave Ross <dave@csixty4.com>
+* Fixed a bug parsing the "display thumbnails" and "view more results" settings
+
+= 4.1 =
+* 2014-04-17 Dave Ross <dave@csixty4.com>
+* Use class="no-livesearch" to disable live search on a particular search box
+* Fixed a bug saving checkboxes on the "Appearance" tab
+
+= 4.0 =
+* 2014-01-12 Dave Ross <dave@csixty4.com>
+* Removed check for PHP 4. WordPress 3.5 is the minimum and that needs PHP 5 anyway.
+* Removed caching. It wasn't effective enough & was a support nightmare.
+* Using an Underscore template to render search results
+* Ukranian translation by Paul Mall (zlyton)
+* Passing extra parameters to WP_Query for faster search queries
+* Store "first image" in postmeta
+* Query post status "publish" because admin-ajax.php runs in an admin context (oy!)
+* Ignore sticky posts.
+* Prevent browser autocomplete on individual input fields, not just the form
+* Tested with WordPress 3.8!
 
 = 3.3.1 =
 * 2013-07-07 Dave Ross <dave@csixty4.com>
@@ -311,31 +336,55 @@ Features I want to implement in future releases:
 * Building permalinks instead of using post guid (problem with posts imported from another blog)
 
 = 1.3 =
-* 2009-05-22  Dave Ross  <dave@csixty4.com>   
+* 2009-05-22  Dave Ross  <dave@csixty4.com>
 * Fixed an annoying bug where the search results div collapsed and expanded again every time an AJAX request completed
 * Cancel any existing AJAX requests before sending a new one
-* Check for PHP 5.x. Displays an error when you try to activate the plugin on PHP < 5   
+* Check for PHP 5.x. Displays an error when you try to activate the plugin on PHP < 5
 * No longer sends the entire WP_Query object to the browser. This was a potential information disclosure issue, plus it was a lot to serialize on the server and parse in the brower
 * Minor code cleanup & optimizations
-     
+
 = 1.2 =
 * 2009-04-10  Dave Ross  <dave@csixty4.com>
-* Code cleanup & optimizations 
-* Styled the admin screen to fit in with WordPress better 
-* New option: display the results above or below the search box 
+* Code cleanup & optimizations
+* Styled the admin screen to fit in with WordPress better
+* New option: display the results above or below the search box
 * Included a note on the admin screen recommending the Google Libraries plugin
-	 
+
 = 1.1 =
 * 2009-03-30  Dave Ross  <dave@csixty4.com>
 * Code cleanup & optimizations
 * Fixed compatibility issues with PHP < 5.2.0 and PHP < 5.1.2
 * New option: limit the number of results to display
-	 
+
 = 1.0 =
 * 2009-03-13  Dave Ross  <dave@csixty4.com>
 * Initial release
 
 == Upgrade Notice ==
+
+= 4.2 =
+
+I've dropped support for WordPress 3.5.x in this plugin. There's a good chance that Dave's WordPress Live Search will continue to work with WordPress 3.5.x for a long time, but I've become aware of another plugin which loads the jQuery UI that ships with WordPress and introduces issues with this plugin. Dave's WordPress Live Search now requires WordPress 3.6 or higher, which ships with jQuery UI 1.10 and works great. (Besides, you really should upgrade WordPress anyway to take advantage of the latest features, bugfixes, and security patches).
+
+= 4.1 =
+
+By popular demand, now you can use the class "no-livesearch" on your search input so live search isn't added to it.
+
+= 4.0 =
+
+Welcome to Dave's WordPress Live Search 4.0!
+
+If you've been using this plugin's caching option, please note that it's been removed. WordPress's Transient API just doesn't work in a way that's appropriate for caching Live Search results unless you're using an object caching plugin. If you've experienced a big increase in the size of your database's wp_options table and you want to clean out the excess, try the [Delete Expired Transients](http://wordpress.org/plugins/delete-expired-transients/) plugin. It'll remove expired cache entries since WordPress itself does not.
+
+In place of caching, I've added optimizations to the query WordPress runs for each search request. I've also optimized how thumbnails are determined for posts that don't have featured images, so the plugin doesn't need to figure that out every time it goes to display a result. Searches are still snappy, even on a site with 1,000 posts.
+
+Now, something special for the theme developers: two new filters that will help you customize the way search results look for your visitors:
+
+* The 'dwls_alter_result_template' filter lets you customize the new [Underscore.js template](http://underscorejs.org/#template) used to render the search results box.
+
+* The 'dwls_post_custom' filter lets you modify the search results before they're passed to the Javascript templating engine. You can edit the values that get sent, or add additional fields to the results (such as pricing on an e-commerce site).
+
+The combination of these filters, plus the existing "custom CSS" settings, give you ultimate control over how the search results look.
 
 = 3.3 =
 
@@ -361,7 +410,7 @@ Version 3.0 includes many bug fixes and improvements, including:
 * WP E-Commerce is officially supported again
 * Completely rewritten caching for better performance
 
-For a complete list of changes, see [the changelog](http://wordpress.org/extend/plugins/daves-wordpress-live-search/changelog/). 
+For a complete list of changes, see [the changelog](http://wordpress.org/extend/plugins/daves-wordpress-live-search/changelog/).
 
 = 2.6 =
 This release fixes the horizontal positioning bug in v2.5.
